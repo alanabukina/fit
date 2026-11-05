@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Фит</title>
+<meta name="theme-color" content="#d94673">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Фит">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#faf7f5;--card:#fff;--ink:#1f1b1a;--mute:#8a807b;--acc:#d94673;--acc2:#fde7ed;--ok:#2a9d6a;--line:#eee6e2;--warn:#c0392b}
+@media(prefers-color-scheme:dark){:root{--bg:#161214;--card:#221c1f;--ink:#f4eeee;--mute:#a39598;--acc:#ff7a9c;--acc2:#3a2530;--ok:#4cc38a;--line:#342b2f;--warn:#ff8a7a}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+#app{max-width:520px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 14px calc(70px + env(safe-area-inset-bottom))}
+h1{font-size:20px;margin:4px 0 2px;display:flex;align-items:center;justify-content:space-between}
+h1 button{border:0;background:none;font-size:20px;color:var(--mute);padding:4px 6px;cursor:pointer}
+.sub{color:var(--mute);font-size:13px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;background:var(--card);padding:4px;border-radius:14px;border:1px solid var(--line);margin-bottom:12px}
+.tabs button{flex:1;border:0;background:none;padding:9px 4px;border-radius:10px;font:inherit;font-size:14px;color:var(--mute);cursor:pointer}
+.tabs button.on{background:var(--acc);color:#fff;font-weight:600}
+.week{display:flex;align-items:center;gap:4px;margin-bottom:12px}
+.week .arr{border:0;background:none;font-size:22px;color:var(--mute);padding:4px 6px;cursor:pointer}
+.days{display:flex;flex:1;gap:4px}
+.day{flex:1;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:6px 0 7px;text-align:center;cursor:pointer;font:inherit;color:var(--ink)}
+.day small{display:block;color:var(--mute);font-size:11px}
+.day b{display:block;font-size:15px}
+.day i{display:block;height:6px;width:6px;border-radius:50%;margin:3px auto 0;background:transparent}
+.day i.p{background:var(--line)}
+.day i.d{background:var(--ok)}
+.day.sel{border-color:var(--acc);background:var(--acc2)}
+.day.today b{color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.card h2{font-size:17px;margin:0 0 2px}
+.card.alert{border-color:var(--acc);background:var(--acc2)}
+.hint{color:var(--mute);font-size:13px;margin:0 0 10px}
+ol.hint{padding-left:18px}
+.ex{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.ex:first-of-type{border-top:0}
+.chk{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);background:none;color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0}
+.chk.on{background:var(--ok);border-color:var(--ok)}
+.ex .t{flex:1;min-width:0}
+.ex .n{font-weight:600}
+.ex .n.done{text-decoration:line-through;color:var(--mute)}
+.ex .r{color:var(--mute);font-size:13px}
+input,textarea{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px 10px;margin-top:6px}
+textarea{resize:vertical;min-height:60px}
+.btn{width:100%;border:0;border-radius:12px;background:var(--acc);color:#fff;font:inherit;font-weight:600;padding:12px;cursor:pointer;margin-top:8px}
+.btn.ok{background:var(--ok)}
+.btn.ghost{background:var(--acc2);color:var(--acc)}
+.chips{display:flex;gap:6px;margin-top:6px}
+.chips button{flex:1;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px 0;font:inherit;cursor:pointer}
+.chips button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.bar>div{height:100%;background:var(--acc);border-radius:6px}
+.row{display:flex;justify-content:space-between;align-items:baseline;font-size:14px}
+.meal{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.meal span:first-child{flex:1}
+.meal button{border:0;background:none;color:var(--mute);font-size:18px;cursor:pointer}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.grid2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.stat{display:flex;gap:8px}
+.stat>div{flex:1;background:var(--bg);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:22px}
+.stat small{color:var(--mute);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 4px;text-align:left;border-top:1px solid var(--line)}
+th{color:var(--mute);font-weight:500;border-top:0}
+#status{position:fixed;left:0;right:0;bottom:0;text-align:center;font-size:12px;color:var(--mute);padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--bg);border:0;width:100%;font-family:inherit;cursor:pointer}
+#status.err{color:var(--warn)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<button id="status" type="button"></button>
+<script>
+// ===== Где лежат данные =====
+const CFG={owner:'alanabukina',repo:'fit-data',path:'data.json',branch:'main'};
+const API='https://api.github.com/repos/'+CFG.owner+'/'+CFG.repo;
+
+const KCAL=1900, PROT=105, WEEK_GOAL=4;
+const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const PLAN={
+ 1:{id:'A',title:'Низ А · ягодицы и квадрицепс',ex:[
+  ['a1','Присед в Смите','3 × 8–10'],
+  ['a2','Румынская тяга (Смит или гантели)','3 × 8–10'],
+  ['a3','Hip thrust: лопатки на скамье, штанга в Смите (вес растёт)','3 × 10–12'],
+  ['a4','Выпады с гантелями','2 × 12 на ногу'],
+  ['a5','Сгибание ног лёжа (приставка на скамье)','2 × 12–15'],
+  ['a6','Подъёмы на носки в Смите','2 × 15']]},
+ 2:{id:'B',title:'Верх · спина, плечи, руки',ex:[
+  ['b1','Тяга верхнего блока (сидя на скамье или на коленях)','3 × 8–12'],
+  ['b2','Жим гантелей на наклонной скамье','3 × 8–10'],
+  ['b3','Тяга гантели в наклоне с упором на скамью','3 × 10–12 на руку'],
+  ['b4','Жим гантелей сидя (плечи)','3 × 8–10'],
+  ['b5','Разведения гантелей в стороны','2 × 12–15'],
+  ['b6','Разгибания на трицепс в блоке','2 × 12']]},
+ 4:{id:'C',title:'Низ Б · бёдра и ягодицы',ex:[
+  ['c1','Присед в Смите, ноги шире (сумо)','3 × 10–12'],
+  ['c2','Болгарские сплит-приседы','3 × 8 на ногу'],
+  ['c3','Hip thrust потяжелее (Смит)','3 × 8–10'],
+  ['c4','Румынская тяга на одной ноге с гантелью','2 × 10 на ногу'],
+  ['c5','Отведение ноги в блоке (ремешок на щиколотку)','2 × 15 на ногу']]},
+ 6:{id:'D',title:'Всё тело + кор',ex:[
+  ['d1','Румынская тяга в Смите или с гантелями','3 × 6–8'],
+  ['d2','Отжимания (с упора или от скамьи)','3 × 8–12'],
+  ['d3','Подтягивания (с резинкой) или тяга верхнего блока','3 × 6–10'],
+  ['d4','Зашагивания на скамью с гантелями','2 × 10 на ногу'],
+  ['d6','Мобильность 10 мин','10 мин']]}
+};
+const AB=[
+ ['ab1','Пресс · блок 1 (на каждую ногу)','по 20 в каждом: 1) скручивание к согнутой ноге, 2) наверху нога сгибается-разгибается, 3) нога в «столе», поднимаешься прессом, 4) наверху статично, нога сгибается-разгибается. Потом другая нога'],
+ ['ab2','Пресс · блок 2 (лёжа на спине)','по 20: колени к груди и касание пола носками → то же, колени врозь → из «стола» выталкивание ног вверх (пятки вместе, колени врозь), удержание 10 сек → круги коленями → ножницы'],
+ ['ab3','Пресс · блок 3 (на согнутых руках)','по 20: колени к груди обеими ногами, затем по одной; в конце статика']
+];
+Object.keys(PLAN).forEach(k=>{
+  const cardio=(k==1||k==4)?['k'+k,'Разминка: дорожка быстрым шагом в горку, велосипед или эллипс','5 мин']:['k'+k,'Кардио: дорожка с бегом (как ты делаешь), велосипед, эллипс или скакалка','~15 мин'];
+  PLAN[k].ex=[cardio].concat(PLAN[k].ex,AB);
+});
+const REST={id:'R',title:'Отдых и мобильность',ex:[
+  ['r1','Мобильность 10 мин (бёдра, спина, шпагат)','10 мин'],
+  ['r2','Прогулка 20–30 мин','по желанию']]};
+
+// ===== Локальное хранилище (данные живут на телефоне и синхронизируются с GitHub) =====
+const LS={tok:'fit.token',st:'fit.state',ops:'fit.ops',last:'fit.lastSync',tab:'fit.tab'};
+function lsGet(k,def){try{const v=localStorage.getItem(k);return v==null?def:JSON.parse(v)}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function norm(s){s=(s&&typeof s==='object')?s:{};return{days:s.days||{},body:s.body||{}}}
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+let token=lsGet(LS.tok,'')||'';
+let state=norm(lsGet(LS.st,null));
+let ops=lsGet(LS.ops,[])||[];
+let lastSync=lsGet(LS.last,0)||0;
+let tab=lsGet(LS.tab,'w')||'w', showSettings=false, authError=false, netError=false;
+
+function keyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+let TODAY=keyOf(new Date()), cur=TODAY;
+function dateOf(k){const p=k.split('-');return new Date(+p[0],+p[1]-1,+p[2],12)}
+function addDays(k,n){const d=dateOf(k);d.setDate(d.getDate()+n);return keyOf(d)}
+function mondayOf(k){const d=dateOf(k);const w=(d.getDay()+6)%7;return addDays(k,-w)}
+function planOf(k){return PLAN[dateOf(k).getDay()]||REST}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function day(k){const d=state.days[k]||{};return{ex:d.ex||{},meals:d.meals||[],done:d.done,energy:d.energy,note:d.note}}
+function isTraining(k){return !!PLAN[dateOf(k).getDay()]}
+function fmt(k){const d=dateOf(k);return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0')}
+
+// Каждое изменение — маленькая операция. Их можно безопасно повторять поверх свежих данных,
+// поэтому правки с телефона и правки Claude не затирают друг друга.
+function applyOp(s,o){
+  if(o.t==='set'){
+    let x=s;
+    for(let i=0;i<o.p.length-1;i++){const k=o.p[i];if(!x[k]||typeof x[k]!=='object')x[k]={};x=x[k]}
+    const last=o.p[o.p.length-1];
+    if(o.v===null||o.v===undefined)delete x[last];else x[last]=o.v;
+  }else if(o.t==='meal+'){
+    const d=s.days[o.d]=s.days[o.d]||{};d.meals=d.meals||[];
+    if(!d.meals.some(m=>m.id===o.m.id))d.meals.push(o.m);
+  }else if(o.t==='meal-'){
+    const d=s.days[o.d];if(!d||!d.meals)return;
+    let i=o.id?d.meals.findIndex(m=>m.id===o.id):-1;
+    if(i<0&&!o.id)i=d.meals.findIndex(m=>!m.id&&m.name===o.name&&+m.kcal===+o.kcal);
+    if(i>=0)d.meals.splice(i,1);
+  }
+}
+function doOp(o,quiet){
+  o.at=Date.now();
+  applyOp(state,o);ops.push(o);
+  lsSet(LS.ops,ops);lsSet(LS.st,state);
+  if(quiet)updateStatus();else render();
+  scheduleSync(700);
+}
+
+// ===== GitHub =====
+function b64dec(b){const bin=atob((b||'').replace(/\s/g,''));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new TextDecoder().decode(u)}
+function b64enc(s){const u=new TextEncoder().encode(s);let bin='';for(let i=0;i<u.length;i+=0x8000)bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(bin)}
+async function gh(path,opt){
+  opt=opt||{};
+  return fetch(API+path,{method:opt.method||'GET',body:opt.body,cache:'no-store',headers:{
+    'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+}
+function Err(kind,status){const e=new Error(kind);e.kind=kind;e.status=status;return e}
+async function pull(){
+  const r=await gh('/contents/'+CFG.path+'?ref='+CFG.branch);
+  if(r.status===401)throw Err('auth',401);
+  if(r.status===404){
+    const rr=await gh('');
+    if(!rr.ok)throw Err('auth',rr.status);
+    return{data:norm(null),sha:null};
+  }
+  if(r.status===403){const rem=r.headers.get('x-ratelimit-remaining');throw Err(rem==='0'?'rate':'auth',403)}
+  if(!r.ok)throw Err('http',r.status);
+  const j=await r.json();
+  let content=j.content;
+  if(!content&&j.sha){
+    const b=await gh('/git/blobs/'+j.sha);
+    if(!b.ok)throw Err('http',b.status);
+    content=(await b.json()).content;
+  }
+  const txt=b64dec(content);
+  return{data:norm(txt.trim()?JSON.parse(txt):null),sha:j.sha};
+}
+let syncing=false,again=false,syncTimer=null;
+function scheduleSync(ms){clearTimeout(syncTimer);syncTimer=setTimeout(sync,ms||0)}
+async function sync(){
+  if(!token||CFG.owner.indexOf('__')===0){updateStatus();return}
+  if(syncing){again=true;return}
+  syncing=true;updateStatus('Синхронизация…');
+  try{
+    for(let attempt=0;attempt<6;attempt++){
+      const{data,sha}=await pull();
+      const sending=ops.slice();
+      if(sending.length){
+        sending.forEach(o=>applyOp(data,o));
+        const body={message:'Фит: изменения с телефона',content:b64enc(JSON.stringify(data,null,1)+'\n'),branch:CFG.branch};
+        if(sha)body.sha=sha;
+        const r=await gh('/contents/'+CFG.path,{method:'PUT',body:JSON.stringify(body)});
+        if(r.status===409||r.status===422){await new Promise(z=>setTimeout(z,400+attempt*600));continue}
+        if(r.status===401||r.status===403||r.status===404)throw Err('auth',r.status);
+        if(!r.ok)throw Err('http',r.status);
+        ops=ops.slice(sending.length);lsSet(LS.ops,ops);
+      }
+      const ns=clone(data);ops.forEach(o=>applyOp(ns,o));
+      state=ns;lsSet(LS.st,state);
+      lastSync=Date.now();lsSet(LS.last,lastSync);
+      authError=false;netError=false;
+      if(ops.length){again=true}
+      break;
+    }
+  }catch(e){
+    if(e&&e.kind==='auth')authError=true;else netError=true;
+  }
+  syncing=false;
+  safeRender();
+  if(again){again=false;scheduleSync(300)}
+  else if(ops.length)scheduleSync(30000);
+}
+
+// ===== Экран =====
+function weekStrip(){
+  const m=mondayOf(cur);let h='<div class="week"><button class="arr" data-act="shift" data-v="-7">‹</button><div class="days">';
+  for(let i=0;i<7;i++){
+    const k=addDays(m,i),d=dateOf(k),done=day(k).done,pl=isTraining(k);
+    h+=`<button class="day${k===cur?' sel':''}${k===TODAY?' today':''}" data-act="pick" data-v="${k}"><small>${WD[d.getDay()]}</small><b>${d.getDate()}</b><i class="${done?'d':(pl?'p':'')}"></i></button>`;
+  }
+  return h+'</div><button class="arr" data-act="shift" data-v="7">›</button></div>';
+}
+function viewW(){
+  const p=planOf(cur),d=day(cur),training=isTraining(cur);
+  const cnt=p.ex.filter(e=>(d.ex[e[0]]||{}).ok).length;
+  let h=`<div class="card"><h2>${esc(p.title)} <span style="color:var(--mute);font-weight:400;font-size:14px">${cnt}/${p.ex.length}</span></h2><p class="hint">${training?'Рабочие подходы — на 1–2 повтора до отказа.':'Сегодня без зала. Мобильность по желанию.'}</p>`;
+  p.ex.forEach(e=>{
+    const x=d.ex[e[0]]||{};
+    h+=`<div class="ex"><button class="chk${x.ok?' on':''}" data-act="exok" data-v="${e[0]}">${x.ok?'✓':''}</button><div class="t"><div class="n${x.ok?' done':''}">${esc(e[1])}</div><div class="r">${esc(e[2])}</div><input data-ex="${e[0]}" placeholder="Вес и повторы, напр. 30 кг × 10, 10, 9" value="${esc(x.note||'')}"></div></div>`;
+  });
+  h+='</div>';
+  h+=`<div class="card"><h2>Как прошло</h2><div class="hint">Самочувствие / энергия</div><div class="chips">${[1,2,3,4,5].map(n=>`<button class="${d.energy===n?'on':''}" data-act="energy" data-v="${n}">${n}</button>`).join('')}</div><textarea id="note" placeholder="Заметка: что было тяжело, где болело, что поменять">${esc(d.note||'')}</textarea><button class="btn${d.done?' ok':''}" data-act="fin">${d.done?'Выполнено ✓ (нажми, чтобы снять)':'Отметить тренировку выполненной'}</button></div>`;
+  return h;
+}
+function viewN(){
+  const d=day(cur);let k=0,p=0;d.meals.forEach(m=>{k+=+m.kcal||0;p+=+m.p||0});
+  let h=`<div class="card"><h2>Питание · ${fmt(cur)}</h2><p class="hint">Ориентиры: ~${KCAL} ккал и ~${PROT} г белка в день.</p>
+  <div class="row"><span>Калории</span><b>${Math.round(k)} / ${KCAL}</b></div><div class="bar"><div style="width:${Math.min(100,k/KCAL*100)}%"></div></div>
+  <div class="row"><span>Белок</span><b>${Math.round(p)} / ${PROT} г</b></div><div class="bar"><div style="width:${Math.min(100,p/PROT*100)}%"></div></div></div>`;
+  h+='<div class="card"><h2>Приёмы пищи</h2>';
+  if(!d.meals.length)h+='<p class="hint">Пока пусто. Скинь фото еды в чат питания, я посчитаю и сама внесу сюда.</p>';
+  d.meals.forEach(m=>{h+=`<div class="meal"><span>${esc(m.name)}</span><span>${Math.round(m.kcal||0)} ккал · ${Math.round(m.p||0)} г</span><button data-act="delmeal" data-v="${esc(m.id||'')}" data-n="${esc(m.name)}" data-k="${esc(m.kcal)}">×</button></div>`});
+  h+=`<div class="grid2" style="margin-top:8px"><input id="mn" placeholder="Что ела"><input id="mk" type="number" inputmode="decimal" placeholder="ккал"><input id="mp" type="number" inputmode="decimal" placeholder="белок"></div><button class="btn ghost" data-act="addmeal">Добавить</button></div>`;
+  return h;
+}
+function weeklyDone(k){const m=mondayOf(k);let c=0;for(let i=0;i<7;i++){const kk=addDays(m,i);if(day(kk).done&&isTraining(kk))c++}return c}
+function viewP(){
+  const keys=Object.keys(state.body).sort();
+  const total=Object.keys(state.days).filter(k=>state.days[k].done&&isTraining(k)).length;
+  const b=state.body[cur]||{};
+  let h=`<div class="card"><h2>Итоги</h2><div class="stat"><div><b>${weeklyDone(cur)}/${WEEK_GOAL}</b><small>тренировок на этой неделе</small></div><div><b>${total}</b><small>всего тренировок</small></div></div></div>`;
+  h+=`<div class="card"><h2>Замеры · ${fmt(cur)}</h2><p class="hint">Раз в неделю, утром, натощак. Вес — можно чаще.</p><div class="grid3"><input id="bw" type="number" inputmode="decimal" placeholder="Вес, кг" value="${esc(b.w||'')}"><input id="bt" type="number" inputmode="decimal" placeholder="Талия, см" value="${esc(b.waist||'')}"><input id="bh" type="number" inputmode="decimal" placeholder="Бёдра, см" value="${esc(b.hips||'')}"></div><button class="btn ghost" data-act="addbody">Сохранить замеры</button></div>`;
+  const pts=keys.filter(k=>+state.body[k].w>0).map(k=>({k,w:+state.body[k].w}));
+  if(pts.length>=2){
+    const W=320,H=120,pad=16,ws=pts.map(p=>p.w),mn=Math.min(...ws)-0.5,mx=Math.max(...ws)+0.5;
+    const xs=i=>pad+i*(W-2*pad)/(pts.length-1),ys=w=>H-pad-(w-mn)/(mx-mn)*(H-2*pad);
+    const path=pts.map((p,i)=>(i?'L':'M')+xs(i).toFixed(1)+' '+ys(p.w).toFixed(1)).join(' ');
+    h+=`<div class="card"><h2>Вес</h2><svg viewBox="0 0 ${W} ${H}" width="100%"><path d="${path}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>${pts.map((p,i)=>`<circle cx="${xs(i).toFixed(1)}" cy="${ys(p.w).toFixed(1)}" r="3.5" fill="var(--acc)"/>`).join('')}<text x="${pad}" y="12" font-size="10" fill="var(--mute)">${mx.toFixed(1)}</text><text x="${pad}" y="${H-2}" font-size="10" fill="var(--mute)">${mn.toFixed(1)}</text></svg></div>`;
+  }
+  if(keys.length){
+    h+='<div class="card"><h2>История</h2><table><tr><th>Дата</th><th>Вес</th><th>Талия</th><th>Бёдра</th></tr>';
+    keys.slice(-12).reverse().forEach(k=>{const x=state.body[k];h+=`<tr><td>${fmt(k)}</td><td>${esc(x.w)||'—'}</td><td>${esc(x.waist)||'—'}</td><td>${esc(x.hips)||'—'}</td></tr>`});
+    h+='</table></div>';
+  }
+  return h;
+}
+const standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+function viewSetup(){
+  let h='';
+  if(!standalone)h+=`<div class="card alert"><h2>Установи на телефон</h2><ol class="hint" style="margin:6px 0 0"><li>Внизу Safari нажми «Поделиться» (квадрат со стрелкой).</li><li>Пролистай и выбери «На экран “Домой”», затем «Добавить».</li><li>Дальше открывай трекер с иконки <b>Фит</b>, а ключ ниже вставь уже там.</li></ol></div>`;
+  h+=`<div class="card${(!token||authError)?' alert':''}"><h2>${token&&!authError?'Подключение':'Подключи синхронизацию'}</h2>`;
+  if(authError)h+='<p class="hint" style="color:var(--warn)">Ключ не подошёл или устарел. Вставь новый.</p>';
+  h+=`<p class="hint">Ключ доступа к хранилищу <b>${esc(CFG.owner)}/${esc(CFG.repo)}</b> на GitHub. Вставляется один раз, хранится только на этом телефоне.</p>
+  <input id="tok" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…" value="">
+  <button class="btn" data-act="savetok">Сохранить ключ</button>`;
+  if(token)h+=`<p class="hint" style="margin-top:10px">Ключ сохранён${lastSync?', последняя синхронизация '+new Date(lastSync).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}.</p>`;
+  if(token)h+='<button class="btn ghost" data-act="closeset">Готово</button>';
+  return h+'</div>';
+}
+function render(){
+  TODAY=keyOf(new Date());
+  const app=document.getElementById('app');
+  const needSetup=showSettings||!token||authError;
+  app.innerHTML=`<h1><span>Фит</span><button data-act="settings" aria-label="Настройки">⚙︎</button></h1><div class="sub">Пн · Вт · Чт · Сб — тренировки, остальное — отдых</div>`+
+    (needSetup?viewSetup():'')+
+    `<div class="tabs">${[['w','Тренировки'],['n','Питание'],['p','Прогресс']].map(t=>`<button class="${tab===t[0]?'on':''}" data-act="tab" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>${weekStrip()}${tab==='w'?viewW():tab==='n'?viewN():viewP()}`;
+  updateStatus();
+}
+function typing(){const a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')}
+let pendingRender=false;
+function safeRender(){if(typing()){pendingRender=true;updateStatus()}else render()}
+document.addEventListener('focusout',()=>{setTimeout(()=>{if(pendingRender&&!typing()){pendingRender=false;render()}},50)});
+function updateStatus(t){
+  const el=document.getElementById('status');el.classList.remove('err');
+  if(t){el.textContent=t;return}
+  if(CFG.owner.indexOf('__')===0){el.textContent='Хранилище ещё не настроено';return}
+  if(!token){el.textContent='Синхронизация не подключена';el.classList.add('err');return}
+  if(authError){el.textContent='Нет доступа к хранилищу: проверь ключ в ⚙︎';el.classList.add('err');return}
+  const n=ops.length;
+  if(netError){el.textContent=(n?'Нет связи · '+n+' изм. сохранены на телефоне, отправлю позже':'Нет связи · показаны сохранённые данные')+' · нажми, чтобы повторить';el.classList.add('err');return}
+  if(n){el.textContent='Сохраняю…';return}
+  el.textContent=lastSync?'Синхронизировано ✓ '+new Date(lastSync).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Загрузка…';
+}
+
+document.getElementById('status').addEventListener('click',()=>scheduleSync(0));
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,v=b.dataset.v;
+  if(a==='tab'){tab=v;lsSet(LS.tab,tab)}
+  else if(a==='shift'){cur=addDays(cur,+v)}
+  else if(a==='pick'){cur=v}
+  else if(a==='settings'){showSettings=!showSettings}
+  else if(a==='closeset'){showSettings=false}
+  else if(a==='savetok'){
+    const t=document.getElementById('tok').value.trim();if(!t)return;
+    token=t;lsSet(LS.tok,token);authError=false;showSettings=false;render();scheduleSync(0);return;
+  }
+  else if(a==='exok'){const x=day(cur).ex[v]||{};doOp({t:'set',p:['days',cur,'ex',v,'ok'],v:!x.ok});return}
+  else if(a==='energy'){const d=day(cur);doOp({t:'set',p:['days',cur,'energy'],v:d.energy===+v?null:+v});return}
+  else if(a==='fin'){doOp({t:'set',p:['days',cur,'done'],v:!day(cur).done});return}
+  else if(a==='delmeal'){doOp({t:'meal-',d:cur,id:v||'',name:b.dataset.n,kcal:b.dataset.k});return}
+  else if(a==='addmeal'){
+    const n=document.getElementById('mn').value.trim(),k=+document.getElementById('mk').value||0,p=+document.getElementById('mp').value||0;
+    if(!n&&!k)return;doOp({t:'meal+',d:cur,m:{id:uid(),name:n||'Без названия',kcal:k,p:p}});return;
+  }
+  else if(a==='addbody'){
+    const w=document.getElementById('bw').value,t=document.getElementById('bt').value,h=document.getElementById('bh').value;
+    if(!w&&!t&&!h)return;doOp({t:'set',p:['body',cur],v:{w:w,waist:t,hips:h}});return;
+  }
+  render();
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.ex){doOp({t:'set',p:['days',cur,'ex',t.dataset.ex,'note'],v:t.value},true)}
+  else if(t.id==='note'){doOp({t:'set',p:['days',cur,'note'],v:t.value},true)}
+});
+// Подтягиваем свежие данные, когда приложение открывают или возвращаются в него
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(keyOf(new Date())!==TODAY){cur=keyOf(new Date())}safeRender();scheduleSync(0)}});
+window.addEventListener('online',()=>scheduleSync(0));
+setInterval(()=>{if(document.visibilityState==='visible')scheduleSync(0)},60000);
+render();
+scheduleSync(0);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
