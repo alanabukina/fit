@@ -321,6 +321,7 @@ function viewN(){
   d.meals.forEach(m=>{h+=`<div class="meal"><span>${esc(m.name)}</span><span style="text-align:right">${m.pending?'<small style="color:var(--mute)">📷 посчитаю в течение часа</small>':`${Math.round(m.kcal||0)} ккал<br><small style="color:var(--mute)">Б ${Math.round(m.p||0)} · Ж ${Math.round(m.f||0)} · У ${Math.round(m.c||0)}</small>`}</span><button data-act="delmeal" data-v="${esc(m.id||'')}" data-n="${esc(m.name)}" data-k="${esc(m.kcal)}">×</button></div>`});
   h+=`<input id="mn" placeholder="Что ела (можно подписать фото)" style="margin-top:10px">
   <button class="btn" data-act="photo" ${photo.busy?'disabled':''}>${photo.busy?'Отправляю фото… ⏳':('📷 Сфоткать еду'+(cur!==TODAY?' на '+fmt(cur):''))}</button>`;
+  if(photo.prev)h+=`<div style="margin-top:10px"><img src="data:image/jpeg;base64,${photo.prev.b64}" style="width:100%;max-height:260px;object-fit:cover;border-radius:12px"><input id="pcap" placeholder="Подпиши, что это (например: вчерашнее пюре + 3 креветки в кляре)" value="${esc(photo.prev.cap)}"><div class="grid2" style="grid-template-columns:2fr 1fr"><button class="btn" data-act="psend">Отправить на ${fmt(photo.prev.day)}</button><button class="btn ghost" data-act="pcancel">Отмена</button></div></div>`;
   if(photo.msg)h+=`<p class="hint" style="margin:8px 0 0${photo.err?';color:var(--warn)':''}">${esc(photo.msg)}</p>`;
   h+=`<p class="hint" style="margin:12px 0 0">Или впиши сама:</p><div class="grid4"><input id="mk" type="number" inputmode="decimal" placeholder="ккал"><input id="mp" type="number" inputmode="decimal" placeholder="Б"><input id="mf" type="number" inputmode="decimal" placeholder="Ж"><input id="mc" type="number" inputmode="decimal" placeholder="У"></div>
   <button class="btn ghost" data-act="addmeal">Добавить</button></div>`;
@@ -397,17 +398,27 @@ function shrink(file){return new Promise((res,rej)=>{
   img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url;})}
 document.getElementById('cam').addEventListener('change',async e=>{
   const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  photo.msg='';photo.err=false;
+  try{photo.prev={b64:await shrink(f),day:photo.day||cur,cap:photo.hint||''}}
+  catch(err){photo.err=true;photo.msg='Не получилось открыть фото, попробуй другое.'}
+  render();
+  setTimeout(()=>{const c=document.getElementById('pcap');if(c)c.scrollIntoView({block:'center'})},50);
+});
+async function sendPhoto(){
+  const pv=photo.prev;if(!pv)return;
   photo.busy=true;photo.msg='';photo.err=false;render();
   try{
-    const b64=await shrink(f),id=uid(),d=photo.day||cur,path='photos/'+d+'/'+id+'.jpg';
-    const r=await gh('/contents/'+path,{method:'PUT',body:JSON.stringify({message:'Fit: фото еды',content:b64,branch:CFG.branch})});
+    const id=uid(),path='photos/'+pv.day+'/'+id+'.jpg';
+    const r=await gh('/contents/'+path,{method:'PUT',body:JSON.stringify({message:'Fit: фото еды',content:pv.b64,branch:CFG.branch})});
     if(r.status===401||r.status===403||r.status===404){authError=true;throw new Error('auth')}
     if(!r.ok)throw new Error('http');
-    doOp({t:'meal+',d:d,m:{id:id,name:photo.hint||'Фото еды',kcal:0,p:0,f:0,c:0,photo:path,pending:true}});
+    photo.prev=null;
+    const mn=document.getElementById('mn');if(mn)mn.value='';
+    doOp({t:'meal+',d:pv.day,m:{id:id,name:pv.cap||'Фото еды',caption:pv.cap||'',kcal:0,p:0,f:0,c:0,photo:path,pending:true}});
     photo.msg='Фото сохранено ✓ КБЖУ появятся в течение часа.';
-  }catch(err){photo.err=true;photo.msg=err.message==='auth'?'Нет доступа к хранилищу, проверь ключ в ⚙︎.':err.message==='img'?'Не получилось открыть фото, попробуй другое.':'Не получилось отправить фото. Проверь интернет и попробуй ещё раз.'}
+  }catch(err){photo.err=true;photo.msg=err.message==='auth'?'Нет доступа к хранилищу, проверь ключ в ⚙︎.':'Не получилось отправить фото. Проверь интернет и нажми «Отправить» ещё раз.'}
   photo.busy=false;render();
-});
+}
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,v=b.dataset.v;
@@ -424,6 +435,8 @@ document.addEventListener('click',e=>{
     photo.hint=(document.getElementById('mn')||{}).value.trim();photo.day=cur;
     document.getElementById('cam').click();return;
   }
+  else if(a==='pcancel'){photo.prev=null;photo.msg=''}
+  else if(a==='psend'){photo.prev.cap=document.getElementById('pcap').value.trim();sendPhoto();return}
   else if(a==='savetok'){
     const t=document.getElementById('tok').value.trim();if(!t)return;
     token=t;lsSet(LS.tok,token);authError=false;showSettings=false;render();scheduleSync(0);return;
@@ -443,6 +456,7 @@ document.addEventListener('click',e=>{
   }
   render();
 });
+document.addEventListener('input',e=>{if(e.target.id==='pcap'&&photo.prev)photo.prev.cap=e.target.value});
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset&&t.dataset.ex){doOp({t:'set',p:['days',cur,'ex',t.dataset.ex,'note'],v:t.value},true)}
