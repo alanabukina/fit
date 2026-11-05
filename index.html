@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Фит</title>
+<title>Fit</title>
 <meta name="theme-color" content="#d94673">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Фит">
+<meta name="apple-mobile-web-app-title" content="Fit">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -36,6 +36,22 @@ h1 button{border:0;background:none;font-size:20px;color:var(--mute);padding:4px 
 .day i.d{background:var(--ok)}
 .day.sel{border-color:var(--acc);background:var(--acc2)}
 .day.today b{color:var(--acc)}
+.calbar{display:flex;align-items:center;justify-content:space-between;margin:0 2px 6px}
+.calbar b{font-size:15px}
+.calbar button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+.month{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 8px;margin-bottom:12px}
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mhead .arr{border:0;background:none;font-size:22px;color:var(--mute);padding:2px 10px;cursor:pointer}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.mgrid .wd{text-align:center;font-size:11px;color:var(--mute);padding-bottom:2px}
+.mgrid .day{padding:6px 0}
+.mgrid .day.other{opacity:.35}
+.mgrid .day.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.mgrid .day.done i{background:#fff}
+.mgrid .day.done.sel{box-shadow:0 0 0 2px var(--acc)}
+.msum{display:flex;gap:8px;margin-top:10px}
+.msum>div{flex:1;background:var(--bg);border-radius:10px;padding:6px;text-align:center;font-size:12px;color:var(--mute)}
+.msum b{display:block;font-size:18px;color:var(--ink)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
 .card h2{font-size:17px;margin:0 0 2px}
 .card.alert{border-color:var(--acc);background:var(--acc2)}
@@ -139,6 +155,7 @@ let token=lsGet(LS.tok,'')||'';
 let state=norm(lsGet(LS.st,null));
 let ops=lsGet(LS.ops,[])||[];
 let lastSync=lsGet(LS.last,0)||0;
+let calMode=lsGet('fit.cal','w')||'w';
 let tab=lsGet(LS.tab,'w')||'w', showSettings=false, authError=false, netError=false;
 
 function keyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -219,7 +236,7 @@ async function sync(){
       const sending=ops.slice();
       if(sending.length){
         sending.forEach(o=>applyOp(data,o));
-        const body={message:'Фит: изменения с телефона',content:b64enc(JSON.stringify(data,null,1)+'\n'),branch:CFG.branch};
+        const body={message:'Fit: изменения с телефона',content:b64enc(JSON.stringify(data,null,1)+'\n'),branch:CFG.branch};
         if(sha)body.sha=sha;
         const r=await gh('/contents/'+CFG.path,{method:'PUT',body:JSON.stringify(body)});
         if(r.status===409||r.status===422){await new Promise(z=>setTimeout(z,400+attempt*600));continue}
@@ -251,6 +268,26 @@ function weekStrip(){
     h+=`<button class="day${k===cur?' sel':''}${k===TODAY?' today':''}" data-act="pick" data-v="${k}"><small>${WD[d.getDay()]}</small><b>${d.getDate()}</b><i class="${done?'d':(pl?'p':'')}"></i></button>`;
   }
   return h+'</div><button class="arr" data-act="shift" data-v="7">›</button></div>';
+}
+const MN=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+function addMonths(k,n){const d=dateOf(k);const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return keyOf(d)}
+function calToggle(){return `<div class="calbar"><b>${calMode==='m'?'':(fmt(cur)+', '+WD[dateOf(cur).getDay()])}</b><button data-act="cal">${calMode==='m'?'Неделя':'📅 Месяц'}</button></div>`}
+function monthView(){
+  const c=dateOf(cur),y=c.getFullYear(),mo=c.getMonth();
+  const first=keyOf(new Date(y,mo,1,12)),start=mondayOf(first);
+  let h=`<div class="month"><div class="mhead"><button class="arr" data-act="mshift" data-v="-1">‹</button><b>${MN[mo]} ${y}</b><button class="arr" data-act="mshift" data-v="1">›</button></div><div class="mgrid">`;
+  ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(w=>h+=`<div class="wd">${w}</div>`);
+  let done=0,plan=0,k=start;
+  for(let i=0;i<42;i++){
+    const d=dateOf(k),inM=d.getMonth()===mo;
+    if(i>=35&&d.getMonth()!==mo&&i%7===0)break;
+    const dd=day(k),pl=isTraining(k);
+    if(inM){if(dd.done)done++;if(pl)plan++}
+    h+=`<button class="day${inM?'':' other'}${dd.done?' done':''}${k===cur?' sel':''}${k===TODAY?' today':''}" data-act="pick" data-v="${k}"><b>${d.getDate()}</b><i class="${dd.done?'d':(pl?'p':'')}"></i></button>`;
+    k=addDays(k,1);
+  }
+  h+=`</div><div class="msum"><div><b>${done}</b>тренировок сделано</div><div><b>${plan}</b>по плану в месяце</div></div></div>`;
+  return h;
 }
 function viewW(){
   const p=planOf(cur),d=day(cur),training=isTraining(cur);
@@ -299,7 +336,7 @@ function viewP(){
 const standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
 function viewSetup(){
   let h='';
-  if(!standalone)h+=`<div class="card alert"><h2>Установи на телефон</h2><ol class="hint" style="margin:6px 0 0"><li>Внизу Safari нажми «Поделиться» (квадрат со стрелкой).</li><li>Пролистай и выбери «На экран “Домой”», затем «Добавить».</li><li>Дальше открывай трекер с иконки <b>Фит</b>, а ключ ниже вставь уже там.</li></ol></div>`;
+  if(!standalone)h+=`<div class="card alert"><h2>Установи на телефон</h2><ol class="hint" style="margin:6px 0 0"><li>Внизу Safari нажми «Поделиться» (квадрат со стрелкой).</li><li>Пролистай и выбери «На экран “Домой”», затем «Добавить».</li><li>Дальше открывай трекер с иконки <b>Fit</b>, а ключ ниже вставь уже там.</li></ol></div>`;
   h+=`<div class="card${(!token||authError)?' alert':''}"><h2>${token&&!authError?'Подключение':'Подключи синхронизацию'}</h2>`;
   if(authError)h+='<p class="hint" style="color:var(--warn)">Ключ не подошёл или устарел. Вставь новый.</p>';
   h+=`<p class="hint">Ключ доступа к хранилищу <b>${esc(CFG.owner)}/${esc(CFG.repo)}</b> на GitHub. Вставляется один раз, хранится только на этом телефоне.</p>
@@ -313,9 +350,9 @@ function render(){
   TODAY=keyOf(new Date());
   const app=document.getElementById('app');
   const needSetup=showSettings||!token||authError;
-  app.innerHTML=`<h1><span>Фит</span><button data-act="settings" aria-label="Настройки">⚙︎</button></h1><div class="sub">Пн · Вт · Чт · Сб — тренировки, остальное — отдых</div>`+
+  app.innerHTML=`<h1><span>Fit</span><button data-act="settings" aria-label="Настройки">⚙︎</button></h1><div class="sub">Пн · Вт · Чт · Сб — тренировки, остальное — отдых</div>`+
     (needSetup?viewSetup():'')+
-    `<div class="tabs">${[['w','Тренировки'],['n','Питание'],['p','Прогресс']].map(t=>`<button class="${tab===t[0]?'on':''}" data-act="tab" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>${weekStrip()}${tab==='w'?viewW():tab==='n'?viewN():viewP()}`;
+    `<div class="tabs">${[['w','Тренировки'],['n','Питание'],['p','Прогресс']].map(t=>`<button class="${tab===t[0]?'on':''}" data-act="tab" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>${calToggle()}${calMode==='m'?monthView():weekStrip()}${tab==='w'?viewW():tab==='n'?viewN():viewP()}`;
   updateStatus();
 }
 function typing(){const a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')}
@@ -341,6 +378,8 @@ document.addEventListener('click',e=>{
   if(a==='tab'){tab=v;lsSet(LS.tab,tab)}
   else if(a==='shift'){cur=addDays(cur,+v)}
   else if(a==='pick'){cur=v}
+  else if(a==='cal'){calMode=calMode==='m'?'w':'m';lsSet('fit.cal',calMode)}
+  else if(a==='mshift'){cur=addMonths(cur,+v)}
   else if(a==='settings'){showSettings=!showSettings}
   else if(a==='closeset'){showSettings=false}
   else if(a==='savetok'){

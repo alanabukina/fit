@@ -1,6 +1,6 @@
 {
-  "name": "Фитнес-трекер",
-  "short_name": "Фит",
+  "name": "Fit",
+  "short_name": "Fit",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
