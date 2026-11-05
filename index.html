@@ -163,7 +163,9 @@ let calMode=lsGet('fit.cal','w')||'w';
 let tab=lsGet(LS.tab,'w')||'w', showSettings=false, authError=false, netError=false;
 
 function keyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-let TODAY=keyOf(new Date()), cur=TODAY;
+// День Алёны длится примерно до 5 утра: после полуночи до 05:00 считаем, что это ещё вчера
+function nowKey(){return keyOf(new Date(Date.now()-5*3600*1000))}
+let TODAY=nowKey(), cur=TODAY;
 function dateOf(k){const p=k.split('-');return new Date(+p[0],+p[1]-1,+p[2],12)}
 function addDays(k,n){const d=dateOf(k);d.setDate(d.getDate()+n);return keyOf(d)}
 function mondayOf(k){const d=dateOf(k);const w=(d.getDay()+6)%7;return addDays(k,-w)}
@@ -318,7 +320,7 @@ function viewN(){
   if(!d.meals.length)h+='<p class="hint">Пока пусто. Сфоткай еду кнопкой ниже, я посчитаю КБЖУ в течение часа.</p>';
   d.meals.forEach(m=>{h+=`<div class="meal"><span>${esc(m.name)}</span><span style="text-align:right">${m.pending?'<small style="color:var(--mute)">📷 посчитаю в течение часа</small>':`${Math.round(m.kcal||0)} ккал<br><small style="color:var(--mute)">Б ${Math.round(m.p||0)} · Ж ${Math.round(m.f||0)} · У ${Math.round(m.c||0)}</small>`}</span><button data-act="delmeal" data-v="${esc(m.id||'')}" data-n="${esc(m.name)}" data-k="${esc(m.kcal)}">×</button></div>`});
   h+=`<input id="mn" placeholder="Что ела (можно подписать фото)" style="margin-top:10px">
-  <button class="btn" data-act="photo" ${photo.busy?'disabled':''}>${photo.busy?'Отправляю фото… ⏳':'📷 Сфоткать еду'}</button>`;
+  <button class="btn" data-act="photo" ${photo.busy?'disabled':''}>${photo.busy?'Отправляю фото… ⏳':('📷 Сфоткать еду'+(cur!==TODAY?' на '+fmt(cur):''))}</button>`;
   if(photo.msg)h+=`<p class="hint" style="margin:8px 0 0${photo.err?';color:var(--warn)':''}">${esc(photo.msg)}</p>`;
   h+=`<p class="hint" style="margin:12px 0 0">Или впиши сама:</p><div class="grid4"><input id="mk" type="number" inputmode="decimal" placeholder="ккал"><input id="mp" type="number" inputmode="decimal" placeholder="Б"><input id="mf" type="number" inputmode="decimal" placeholder="Ж"><input id="mc" type="number" inputmode="decimal" placeholder="У"></div>
   <button class="btn ghost" data-act="addmeal">Добавить</button></div>`;
@@ -359,7 +361,7 @@ function viewSetup(){
   return h+'</div>';
 }
 function render(){
-  TODAY=keyOf(new Date());
+  TODAY=nowKey();
   const app=document.getElementById('app');
   const needSetup=showSettings||!token||authError;
   app.innerHTML=`<h1><span>Fit</span><button data-act="settings" aria-label="Настройки">⚙︎</button></h1><div class="sub">Пн · Вт · Чт · Сб — тренировки, остальное — отдых</div>`+
@@ -447,7 +449,7 @@ document.addEventListener('change',e=>{
   else if(t.id==='note'){doOp({t:'set',p:['days',cur,'note'],v:t.value},true)}
 });
 // Подтягиваем свежие данные, когда приложение открывают или возвращаются в него
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(keyOf(new Date())!==TODAY){cur=keyOf(new Date())}safeRender();scheduleSync(0)}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(nowKey()!==TODAY){cur=nowKey()}safeRender();scheduleSync(0)}});
 window.addEventListener('online',()=>scheduleSync(0));
 setInterval(()=>{if(document.visibilityState==='visible')scheduleSync(0)},60000);
 render();
