@@ -81,6 +81,8 @@ textarea{resize:vertical;min-height:60px}
 .meal button{border:0;background:none;color:var(--mute);font-size:18px;cursor:pointer}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .grid2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.btn[disabled]{opacity:.6}
 .stat{display:flex;gap:8px}
 .stat>div{flex:1;background:var(--bg);border-radius:12px;padding:10px;text-align:center}
 .stat b{display:block;font-size:22px}
@@ -95,6 +97,7 @@ th{color:var(--mute);font-weight:500;border-top:0}
 <body>
 <div id="app"></div>
 <button id="status" type="button"></button>
+<input id="cam" type="file" accept="image/*" style="display:none">
 <script>
 // ===== Где лежат данные =====
 const CFG={owner:'alanabukina',repo:'fit-data',path:'data.json',branch:'main'};
@@ -152,6 +155,7 @@ function clone(x){return JSON.parse(JSON.stringify(x))}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 
 let token=lsGet(LS.tok,'')||'';
+let photo={busy:false,msg:'',err:false};
 let state=norm(lsGet(LS.st,null));
 let ops=lsGet(LS.ops,[])||[];
 let lastSync=lsGet(LS.last,0)||0;
@@ -305,14 +309,19 @@ function viewW(){
   return h;
 }
 function viewN(){
-  const d=day(cur);let k=0,p=0;d.meals.forEach(m=>{k+=+m.kcal||0;p+=+m.p||0});
+  const d=day(cur);let k=0,p=0,f=0,c=0;d.meals.forEach(m=>{k+=+m.kcal||0;p+=+m.p||0;f+=+m.f||0;c+=+m.c||0});
   let h=`<div class="card"><h2>Питание · ${fmt(cur)}</h2><p class="hint">Ориентиры: ~${KCAL} ккал и ~${PROT} г белка в день.</p>
   <div class="row"><span>Калории</span><b>${Math.round(k)} / ${KCAL}</b></div><div class="bar"><div style="width:${Math.min(100,k/KCAL*100)}%"></div></div>
-  <div class="row"><span>Белок</span><b>${Math.round(p)} / ${PROT} г</b></div><div class="bar"><div style="width:${Math.min(100,p/PROT*100)}%"></div></div></div>`;
+  <div class="row"><span>Белок</span><b>${Math.round(p)} / ${PROT} г</b></div><div class="bar"><div style="width:${Math.min(100,p/PROT*100)}%"></div></div>
+  <div class="row"><span>Жиры · Углеводы</span><b>${Math.round(f)} г · ${Math.round(c)} г</b></div></div>`;
   h+='<div class="card"><h2>Приёмы пищи</h2>';
-  if(!d.meals.length)h+='<p class="hint">Пока пусто. Скинь фото еды в чат питания, я посчитаю и сама внесу сюда.</p>';
-  d.meals.forEach(m=>{h+=`<div class="meal"><span>${esc(m.name)}</span><span>${Math.round(m.kcal||0)} ккал · ${Math.round(m.p||0)} г</span><button data-act="delmeal" data-v="${esc(m.id||'')}" data-n="${esc(m.name)}" data-k="${esc(m.kcal)}">×</button></div>`});
-  h+=`<div class="grid2" style="margin-top:8px"><input id="mn" placeholder="Что ела"><input id="mk" type="number" inputmode="decimal" placeholder="ккал"><input id="mp" type="number" inputmode="decimal" placeholder="белок"></div><button class="btn ghost" data-act="addmeal">Добавить</button></div>`;
+  if(!d.meals.length)h+='<p class="hint">Пока пусто. Сфоткай еду кнопкой ниже, я посчитаю КБЖУ в течение часа.</p>';
+  d.meals.forEach(m=>{h+=`<div class="meal"><span>${esc(m.name)}</span><span style="text-align:right">${m.pending?'<small style="color:var(--mute)">📷 посчитаю в течение часа</small>':`${Math.round(m.kcal||0)} ккал<br><small style="color:var(--mute)">Б ${Math.round(m.p||0)} · Ж ${Math.round(m.f||0)} · У ${Math.round(m.c||0)}</small>`}</span><button data-act="delmeal" data-v="${esc(m.id||'')}" data-n="${esc(m.name)}" data-k="${esc(m.kcal)}">×</button></div>`});
+  h+=`<input id="mn" placeholder="Что ела (можно подписать фото)" style="margin-top:10px">
+  <button class="btn" data-act="photo" ${photo.busy?'disabled':''}>${photo.busy?'Отправляю фото… ⏳':'📷 Сфоткать еду'}</button>`;
+  if(photo.msg)h+=`<p class="hint" style="margin:8px 0 0${photo.err?';color:var(--warn)':''}">${esc(photo.msg)}</p>`;
+  h+=`<p class="hint" style="margin:12px 0 0">Или впиши сама:</p><div class="grid4"><input id="mk" type="number" inputmode="decimal" placeholder="ккал"><input id="mp" type="number" inputmode="decimal" placeholder="Б"><input id="mf" type="number" inputmode="decimal" placeholder="Ж"><input id="mc" type="number" inputmode="decimal" placeholder="У"></div>
+  <button class="btn ghost" data-act="addmeal">Добавить</button></div>`;
   return h;
 }
 function weeklyDone(k){const m=mondayOf(k);let c=0;for(let i=0;i<7;i++){const kk=addDays(m,i);if(day(kk).done&&isTraining(kk))c++}return c}
@@ -375,6 +384,28 @@ function updateStatus(t){
 }
 
 document.getElementById('status').addEventListener('click',()=>scheduleSync(0));
+
+// ===== Фото еды: загружаем в fit-data/photos, Claude раз в час считает КБЖУ =====
+function shrink(file){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{const M=1280,s=Math.min(1,M/Math.max(img.naturalWidth,img.naturalHeight));
+    const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*s);cv.height=Math.round(img.naturalHeight*s);
+    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(url);
+    res(cv.toDataURL('image/jpeg',0.82).split(',')[1])};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url;})}
+document.getElementById('cam').addEventListener('change',async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  photo.busy=true;photo.msg='';photo.err=false;render();
+  try{
+    const b64=await shrink(f),id=uid(),d=photo.day||cur,path='photos/'+d+'/'+id+'.jpg';
+    const r=await gh('/contents/'+path,{method:'PUT',body:JSON.stringify({message:'Fit: фото еды',content:b64,branch:CFG.branch})});
+    if(r.status===401||r.status===403||r.status===404){authError=true;throw new Error('auth')}
+    if(!r.ok)throw new Error('http');
+    doOp({t:'meal+',d:d,m:{id:id,name:photo.hint||'Фото еды',kcal:0,p:0,f:0,c:0,photo:path,pending:true}});
+    photo.msg='Фото сохранено ✓ КБЖУ появятся в течение часа.';
+  }catch(err){photo.err=true;photo.msg=err.message==='auth'?'Нет доступа к хранилищу, проверь ключ в ⚙︎.':err.message==='img'?'Не получилось открыть фото, попробуй другое.':'Не получилось отправить фото. Проверь интернет и попробуй ещё раз.'}
+  photo.busy=false;render();
+});
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,v=b.dataset.v;
@@ -386,6 +417,11 @@ document.addEventListener('click',e=>{
   else if(a==='mshift'){cur=addMonths(cur,+v)}
   else if(a==='settings'){showSettings=!showSettings}
   else if(a==='closeset'){showSettings=false}
+  else if(a==='photo'){
+    if(!token){photo.err=true;photo.msg='Сначала подключи синхронизацию в ⚙︎.';render();return}
+    photo.hint=(document.getElementById('mn')||{}).value.trim();photo.day=cur;
+    document.getElementById('cam').click();return;
+  }
   else if(a==='savetok'){
     const t=document.getElementById('tok').value.trim();if(!t)return;
     token=t;lsSet(LS.tok,token);authError=false;showSettings=false;render();scheduleSync(0);return;
@@ -395,8 +431,9 @@ document.addEventListener('click',e=>{
   else if(a==='fin'){doOp({t:'set',p:['days',cur,'done'],v:!day(cur).done});return}
   else if(a==='delmeal'){doOp({t:'meal-',d:cur,id:v||'',name:b.dataset.n,kcal:b.dataset.k});return}
   else if(a==='addmeal'){
-    const n=document.getElementById('mn').value.trim(),k=+document.getElementById('mk').value||0,p=+document.getElementById('mp').value||0;
-    if(!n&&!k)return;doOp({t:'meal+',d:cur,m:{id:uid(),name:n||'Без названия',kcal:k,p:p}});return;
+    const g=id=>Math.round((+document.getElementById(id).value||0)*10)/10;
+    const n=document.getElementById('mn').value.trim(),k=g('mk');
+    if(!n&&!k)return;photo.msg='';doOp({t:'meal+',d:cur,m:{id:uid(),name:n||'Без названия',kcal:k,p:g('mp'),f:g('mf'),c:g('mc')}});return;
   }
   else if(a==='addbody'){
     const w=document.getElementById('bw').value,t=document.getElementById('bt').value,h=document.getElementById('bh').value;
