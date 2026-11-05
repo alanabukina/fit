@@ -163,10 +163,13 @@ let TODAY=keyOf(new Date()), cur=TODAY;
 function dateOf(k){const p=k.split('-');return new Date(+p[0],+p[1]-1,+p[2],12)}
 function addDays(k,n){const d=dateOf(k);d.setDate(d.getDate()+n);return keyOf(d)}
 function mondayOf(k){const d=dateOf(k);const w=(d.getDay()+6)%7;return addDays(k,-w)}
-function planOf(k){return PLAN[dateOf(k).getDay()]||REST}
+const BYID={A:PLAN[1],B:PLAN[2],C:PLAN[4],D:PLAN[6],R:REST};
+const PNAMES=[['A','Низ А'],['B','Верх'],['C','Низ Б'],['D','Всё тело'],['R','Отдых']];
+function defPlan(k){return PLAN[dateOf(k).getDay()]||REST}
+function planOf(k){const o=state.days[k]&&state.days[k].plan;return(o&&BYID[o])||defPlan(k)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function day(k){const d=state.days[k]||{};return{ex:d.ex||{},meals:d.meals||[],done:d.done,energy:d.energy,note:d.note}}
-function isTraining(k){return !!PLAN[dateOf(k).getDay()]}
+function isTraining(k){return planOf(k)!==REST}
 function fmt(k){const d=dateOf(k);return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0')}
 
 // Каждое изменение — маленькая операция. Их можно безопасно повторять поверх свежих данных,
@@ -292,7 +295,7 @@ function monthView(){
 function viewW(){
   const p=planOf(cur),d=day(cur),training=isTraining(cur);
   const cnt=p.ex.filter(e=>(d.ex[e[0]]||{}).ok).length;
-  let h=`<div class="card"><h2>${esc(p.title)} <span style="color:var(--mute);font-weight:400;font-size:14px">${cnt}/${p.ex.length}</span></h2><p class="hint">${training?'Рабочие подходы — на 1–2 повтора до отказа.':'Сегодня без зала. Мобильность по желанию.'}</p>`;
+  let h=`<div class="card"><h2>${esc(p.title)} <span style="color:var(--mute);font-weight:400;font-size:14px">${cnt}/${p.ex.length}</span></h2><p class="hint">${training?'Рабочие подходы — на 1–2 повтора до отказа.':'Сегодня без зала. Мобильность по желанию.'}</p><div class="chips" style="margin:-4px 0 8px">${PNAMES.map(x=>`<button style="font-size:12px;padding:6px 0" class="${p===BYID[x[0]]?'on':''}" data-act="setplan" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
   p.ex.forEach(e=>{
     const x=d.ex[e[0]]||{};
     h+=`<div class="ex"><button class="chk${x.ok?' on':''}" data-act="exok" data-v="${e[0]}">${x.ok?'✓':''}</button><div class="t"><div class="n${x.ok?' done':''}">${esc(e[1])}</div><div class="r">${esc(e[2])}</div><input data-ex="${e[0]}" placeholder="Вес и повторы, напр. 30 кг × 10, 10, 9" value="${esc(x.note||'')}"></div></div>`;
@@ -378,6 +381,7 @@ document.addEventListener('click',e=>{
   if(a==='tab'){tab=v;lsSet(LS.tab,tab)}
   else if(a==='shift'){cur=addDays(cur,+v)}
   else if(a==='pick'){cur=v}
+  else if(a==='setplan'){doOp({t:'set',p:['days',cur,'plan'],v:BYID[v]===defPlan(cur)?null:v});return}
   else if(a==='cal'){calMode=calMode==='m'?'w':'m';lsSet('fit.cal',calMode)}
   else if(a==='mshift'){cur=addMonths(cur,+v)}
   else if(a==='settings'){showSettings=!showSettings}

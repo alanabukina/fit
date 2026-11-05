@@ -1,5 +1,5 @@
 // Офлайн-кэш оболочки приложения. Данные (api.github.com) не кэшируются.
-const CACHE = 'fit-v2';
+const CACHE = 'fit-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
